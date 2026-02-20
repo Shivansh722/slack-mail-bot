@@ -1,0 +1,27 @@
+<mjml>
+  <mj-body background-color="#f8fafc">
+    <mj-section background-color="#7f1d1d" padding="20px">
+      <mj-column>
+        <mj-text font-size="20px" color="#fef2f2" font-weight="700">
+          {{subject}}
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    <mj-section background-color="#ffffff" padding="24px">
+      <mj-column>
+        <mj-text font-size="16px" color="#111827">
+          {{greeting}}
+        </mj-text>
+        <mj-text font-size="16px" color="#1f2937" line-height="24px">
+          {{body}}
+        </mj-text>
+        <mj-text font-size="16px" color="#b91c1c" font-weight="600">
+          {{cta}}
+        </mj-text>
+        <mj-text font-size="16px" color="#374151">
+          {{signature}}
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
