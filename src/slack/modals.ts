@@ -1,5 +1,3 @@
-import { View } from "@slack/bolt";
-
 interface ComposeModalValues {
   recipient?: string;
   purpose?: string;
@@ -7,7 +5,7 @@ interface ComposeModalValues {
   template?: "introduction" | "followup" | "status_update" | "escalation";
 }
 
-export const buildComposeEmailModal = (initialValues?: ComposeModalValues): View => ({
+export const buildComposeEmailModal = (initialValues?: ComposeModalValues): any => ({
   type: "modal",
   callback_id: "compose_email_modal",
   title: {
@@ -73,12 +71,12 @@ export const buildComposeEmailModal = (initialValues?: ComposeModalValues): View
         },
         initial_option: initialValues?.tone
           ? {
-              text: {
-                type: "plain_text",
-                text: capitalize(initialValues.tone),
-              },
-              value: initialValues.tone,
-            }
+            text: {
+              type: "plain_text",
+              text: capitalize(initialValues.tone),
+            },
+            value: initialValues.tone,
+          }
           : undefined,
         options: [
           createOption("Formal", "formal"),
@@ -104,12 +102,12 @@ export const buildComposeEmailModal = (initialValues?: ComposeModalValues): View
         },
         initial_option: initialValues?.template
           ? {
-              text: {
-                type: "plain_text",
-                text: formatTemplateLabel(initialValues.template),
-              },
-              value: initialValues.template,
-            }
+            text: {
+              type: "plain_text",
+              text: formatTemplateLabel(initialValues.template),
+            },
+            value: initialValues.template,
+          }
           : undefined,
         options: [
           createOption("Introduction", "introduction"),

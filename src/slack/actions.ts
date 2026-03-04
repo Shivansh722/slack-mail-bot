@@ -104,10 +104,10 @@ export const registerActions = (app: App): void => {
   app.action("rewrite_email", async ({ ack, action, body, client }) => {
     await ack();
 
-    const metadata = JSON.parse((action as BlockAction).value);
+    const metadata = JSON.parse((action as any).value);
 
     await client.views.open({
-      trigger_id: body.trigger_id as string,
+      trigger_id: (body as any).trigger_id as string,
       view: buildComposeEmailModal({
         recipient: metadata.recipient,
         purpose: metadata.purpose,
@@ -120,7 +120,7 @@ export const registerActions = (app: App): void => {
   app.action("send_email", async ({ ack, action, body, client }) => {
     await ack();
 
-    const draftId = (action as BlockAction).value;
+    const draftId = (action as any).value;
 
     const draft = await getDraftById(draftId);
     if (!draft) {
@@ -135,7 +135,7 @@ export const registerActions = (app: App): void => {
     try {
       const messageId = await sendEmail({
         to: draft.recipient,
-       subject: draft.content.subject,
+        subject: draft.content.subject,
         html: draft.html,
       });
 
