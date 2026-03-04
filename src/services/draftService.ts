@@ -69,7 +69,7 @@ export const saveDraft = async (params: SaveDraftParams): Promise<string> => {
 
     return draftRef.id;
   } catch (err) {
-    console.warn('Firestore write failed, falling back to in-memory store:', err?.message ?? err);
+    console.warn('Firestore write failed, falling back to in-memory store:', (err as any)?.message ?? err);
     const id = `local-${inMemoryAutoId++}`;
     inMemoryDrafts.set(id, {
       id,
@@ -120,7 +120,7 @@ export const getDraftById = async (draftId: string): Promise<DraftRecord | null>
       createdAt: data?.createdAt,
     } as DraftRecord;
   } catch (err) {
-    console.warn('Firestore read failed, falling back to in-memory store:', err?.message ?? err);
+    console.warn('Firestore read failed, falling back to in-memory store:', (err as any)?.message ?? err);
     const found = inMemoryDrafts.get(draftId) ?? null;
     if (!found) return null;
     return {
@@ -154,7 +154,7 @@ export const markDraftAsSent = async (draftId: string): Promise<void> => {
       sentAt: fb.FieldValue.serverTimestamp(),
     });
   } catch (err) {
-    console.warn('Firestore update failed, marking in-memory draft as sent:', err?.message ?? err);
+    console.warn('Firestore update failed, marking in-memory draft as sent:', (err as any)?.message ?? err);
     const doc = inMemoryDrafts.get(draftId);
     if (doc) {
       doc.status = "sent";
@@ -196,7 +196,7 @@ export const logEmail = async (params: EmailLogParams): Promise<void> => {
       sentAt: fb.FieldValue.serverTimestamp(),
     });
   } catch (err) {
-    console.warn('Firestore insert for email_logs failed, saving log in-memory:', err?.message ?? err);
+    console.warn('Firestore insert for email_logs failed, saving log in-memory:', (err as any)?.message ?? err);
     const id = `log-${Date.now()}`;
     inMemoryDrafts.set(id, {
       id,

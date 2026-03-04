@@ -9,6 +9,7 @@ const templateFiles: Record<TemplateType, string> = {
   followup: "followup.mjml",
   status_update: "update.mjml",
   escalation: "escalation.mjml",
+  bi_delivery: "bi_delivery.mjml",
 };
 
 const compiledTemplates = new Map<string, Handlebars.TemplateDelegate>();

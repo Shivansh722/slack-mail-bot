@@ -59,13 +59,13 @@ if (process.env.SLACK_APP_TOKEN) {
   app.get('/', (_req, res) => res.send('Slack-email bot (socket mode) is running'));
 
   app.post('/internal/generate', async (req, res) => {
-    const { recipient, purpose, tone, template } = req.body ?? {};
+    const { recipient, purpose, tone, template, data } = req.body ?? {};
     if (!recipient || !purpose || !tone || !template) {
       return res.status(400).json({ error: 'recipient, purpose, tone and template are required' });
     }
 
     try {
-      const aiContent = await composeEmail({ recipient, purpose, tone, template });
+      const aiContent = await composeEmail({ recipient, purpose, tone, template, data });
       const html = await renderTemplate(template, aiContent);
       const draftId = await saveDraft({
         slackUserId: 'local-test',
