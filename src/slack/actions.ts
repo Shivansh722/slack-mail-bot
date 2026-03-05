@@ -2,7 +2,7 @@ import { App, BlockAction } from "@slack/bolt";
 import { composeEmail, TemplateType, Tone } from "../ai/emailComposer";
 import { renderTemplate } from "../email/templateRenderer";
 import { saveDraft, logEmail, getDraftById, markDraftAsSent } from "../services/draftService";
-import { buildComposeEmailModal } from "./modals";
+import { buildComposeEmailModal, buildReviewModal } from "./modals";
 import { sendEmail } from "../email/sender";
 
 const TONE_VALUES: Record<string, Tone> = {
@@ -143,6 +143,24 @@ export const registerActions = (app: App): void => {
               style: "primary",
               value: draftId,
             },
+            {
+              type: "button",
+              action_id: "save_draft",
+              text: {
+                type: "plain_text",
+                text: "💾 Save",
+              },
+              value: draftId,
+            },
+            {
+              type: "button",
+              action_id: "request_review",
+              text: {
+                type: "plain_text",
+                text: "👀 Review",
+              },
+              value: JSON.stringify({ draftId, recipient, subject: aiContent.subject, preview }),
+            },
           ],
         },
       ];
@@ -238,7 +256,106 @@ export const registerActions = (app: App): void => {
       });
     }
   });
-};
+  app.action("save_draft", async ({ ack, action, body, client }) => {
+    await ack();
+    const draftId = (action as any).value;
+    const draft = await getDraftById(draftId);
+    if (draft) {
+      // send draft as email to the configured sender address
+      try {
+        await sendEmail({
+          to: process.env.SENDER_EMAIL || draft.slackUserId,
+          subject: `Draft: ${draft.content.subject}`,
+          html: draft.html,
+        });
+      } catch (err) {
+        console.error("failed to email draft to sender", err);
+      }
+    }
+    await client.chat.postEphemeral({
+      channel: body.channel?.id as string,
+      user: body.user.id,
+      text: `Draft saved and emailed to your address (ID: ${draftId}).`,
+    });
+  });
+
+  app.action("request_review", async ({ ack, action, body, client }) => {
+    await ack();
+    const metadata = JSON.parse((action as any).value);
+    try {
+      await client.views.open({
+        trigger_id: (body as any).trigger_id as string,
+        view: buildReviewModal(metadata.draftId, metadata.subject, metadata.preview),
+      });
+    } catch (err) {
+      console.error("failed to open review modal", err);
+    }
+  });
+
+  app.view("review_modal", async ({ ack, body, view, client }) => {
+    const reviewer = view.state.values.reviewer_block.reviewer_select.selected_user;
+    const draftId = view.private_metadata;
+    await ack();
+    // fetch draft to include html content
+    const draft = await getDraftById(draftId);
+    if (!draft) return;
+    const msgBlocks = [
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `*Subject:* ${draft.content.subject}` },
+      },
+      {
+        type: "section",
+        text: { type: "mrkdwn", text: `*Preview:*\n${draft.content.body}` },
+      },
+      {
+        type: "actions",
+        elements: [
+          {
+            type: "button",
+            text: { type: "plain_text", text: "✅ Approve" },
+            style: "primary",
+            action_id: "approve_review",
+            value: JSON.stringify({ draftId }),
+          },
+          {
+            type: "button",
+            text: { type: "plain_text", text: "❌ Reject" },
+            style: "danger",
+            action_id: "reject_review",
+            value: JSON.stringify({ draftId }),
+          },
+        ],
+      },
+    ];
+    try {
+      await client.chat.postMessage({ channel: reviewer, blocks: msgBlocks, text: "Email review request" });
+    } catch (err) {
+      console.error("failed to send review DM", err);
+    }
+  });
+
+  app.action("approve_review", async ({ ack, action, body, client }) => {
+    await ack();
+    const { draftId } = JSON.parse((action as any).value);
+    const draft = await getDraftById(draftId);
+    if (!draft) return;
+    try {
+      const messageId = await sendEmail({ to: draft.recipient, subject: draft.content.subject, html: draft.html });
+      await markDraftAsSent(draftId);
+      await logEmail({ draftId, recipient: draft.recipient, status: "sent", providerMessageId: messageId });
+      if (body.user && body.user.id) {
+        await client.chat.postEphemeral({ channel: body.channel?.id as string || body.user.id, user: body.user.id, text: `Email sent after approval.` });
+      }
+    } catch (err) {
+      console.error("error sending approved email", err);
+    }
+  });
+
+  app.action("reject_review", async ({ ack, body, client }) => {
+    await ack();
+    await client.chat.postEphemeral({ channel: body.channel?.id as string || body.user.id, user: body.user.id, text: `Review rejected.` });
+  });};
 
 const formatTemplateLabel = (value: TemplateType): string => {
   switch (value) {

@@ -161,7 +161,47 @@ const formatTemplateLabel = (value: string) => {
     case "status_update":
       return "Status update";
     case "escalation":
-    default:
       return "Escalation";
+    case "bi_delivery":
+      return "BI Delivery";
   }
 };
+
+export const buildReviewModal = (draftId: string, subject: string, preview: string) => ({
+  type: "modal",
+  callback_id: "review_modal",
+  private_metadata: draftId,
+  title: {
+    type: "plain_text",
+    text: "Request review",
+  },
+  submit: {
+    type: "plain_text",
+    text: "Send",
+  },
+  close: {
+    type: "plain_text",
+    text: "Cancel",
+  },
+  blocks: [
+    {
+      type: "section",
+      text: {
+        type: "mrkdwn",
+        text: `*Subject:* ${subject}\n*Preview:*\n${preview}`,
+      },
+    },
+    {
+      type: "input",
+      block_id: "reviewer_block",
+      label: {
+        type: "plain_text",
+        text: "Choose reviewer",
+      },
+      element: {
+        type: "users_select",
+        action_id: "reviewer_select",
+      },
+    },
+  ],
+});
