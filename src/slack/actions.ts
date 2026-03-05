@@ -145,15 +145,6 @@ export const registerActions = (app: App): void => {
             },
             {
               type: "button",
-              action_id: "save_draft",
-              text: {
-                type: "plain_text",
-                text: "💾 Save",
-              },
-              value: draftId,
-            },
-            {
-              type: "button",
               action_id: "request_review",
               text: {
                 type: "plain_text",
@@ -256,28 +247,6 @@ export const registerActions = (app: App): void => {
       });
     }
   });
-  app.action("save_draft", async ({ ack, action, body, client }) => {
-    await ack();
-    const draftId = (action as any).value;
-    const draft = await getDraftById(draftId);
-    if (draft) {
-      // send draft as email to the configured sender address
-      try {
-        await sendEmail({
-          to: process.env.SENDER_EMAIL || draft.slackUserId,
-          subject: `Draft: ${draft.content.subject}`,
-          html: draft.html,
-        });
-      } catch (err) {
-        console.error("failed to email draft to sender", err);
-      }
-    }
-    await client.chat.postEphemeral({
-      channel: body.channel?.id as string,
-      user: body.user.id,
-      text: `Draft saved and emailed to your address (ID: ${draftId}).`,
-    });
-  });
 
   app.action("request_review", async ({ ack, action, body, client }) => {
     await ack();
@@ -285,7 +254,7 @@ export const registerActions = (app: App): void => {
     try {
       await client.views.open({
         trigger_id: (body as any).trigger_id as string,
-        view: buildReviewModal(metadata.draftId, metadata.subject, metadata.preview),
+        view: buildReviewModal(metadata.draftId, metadata.subject, metadata.preview) as any,
       });
     } catch (err) {
       console.error("failed to open review modal", err);
@@ -293,45 +262,71 @@ export const registerActions = (app: App): void => {
   });
 
   app.view("review_modal", async ({ ack, body, view, client }) => {
-    const reviewer = view.state.values.reviewer_block.reviewer_select.selected_user;
+    const reviewer = view.state.values.reviewer_block?.reviewer_select?.selected_user;
     const draftId = view.private_metadata;
     await ack();
+    if (!reviewer) {
+      await client.chat.postEphemeral({
+        channel: body.user.id,
+        user: body.user.id,
+        text: "No reviewer selected. Please choose a user.",
+      });
+      return;
+    }
     // fetch draft to include html content
     const draft = await getDraftById(draftId);
     if (!draft) return;
-    const msgBlocks = [
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*Subject:* ${draft.content.subject}` },
-      },
-      {
-        type: "section",
-        text: { type: "mrkdwn", text: `*Preview:*\n${draft.content.body}` },
-      },
-      {
-        type: "actions",
-        elements: [
-          {
-            type: "button",
-            text: { type: "plain_text", text: "✅ Approve" },
-            style: "primary",
-            action_id: "approve_review",
-            value: JSON.stringify({ draftId }),
-          },
-          {
-            type: "button",
-            text: { type: "plain_text", text: "❌ Reject" },
-            style: "danger",
-            action_id: "reject_review",
-            value: JSON.stringify({ draftId }),
-          },
-        ],
-      },
-    ];
+    const senderUserId: string = body.user.id;
     try {
-      await client.chat.postMessage({ channel: reviewer, blocks: msgBlocks, text: "Email review request" });
-    } catch (err) {
-      console.error("failed to send review DM", err);
+      // Post directly to the reviewer's user ID — chat:write delivers it as a bot DM
+      // and triggers a notification badge in Slack (Apps sidebar)
+      const reviewBlocks = [
+        {
+          type: "section",
+          text: {
+            type: "mrkdwn",
+            text: `👋 *<@${senderUserId}> has requested your review on an email.*\n\n*Subject:* ${draft.content.subject}\n\n*Preview:*\n${draft.content.body}`,
+          },
+        },
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: { type: "plain_text", text: "✅ Approve & Send" },
+              style: "primary",
+              action_id: "approve_review",
+              value: JSON.stringify({ draftId }),
+            },
+            {
+              type: "button",
+              text: { type: "plain_text", text: "❌ Reject" },
+              style: "danger",
+              action_id: "reject_review",
+              value: JSON.stringify({ draftId }),
+            },
+          ],
+        },
+      ];
+
+      await client.chat.postMessage({
+        channel: reviewer,
+        blocks: reviewBlocks,
+        text: `${senderUserId} requested your review on: ${draft.content.subject}`,
+      });
+
+      await client.chat.postEphemeral({
+        channel: senderUserId,
+        user: senderUserId,
+        text: `✅ Review request sent to <@${reviewer}>. They'll see it under *Apps* in their Slack sidebar.`,
+      });
+    } catch (outerErr) {
+      console.error("unexpected error in review DM flow", outerErr);
+      await client.chat.postEphemeral({
+        channel: senderUserId,
+        user: senderUserId,
+        text: `Failed to send review request: ${(outerErr as any)?.message ?? outerErr}`,
+      });
     }
   });
 
