@@ -131,7 +131,7 @@ export const registerActions = (app: App): void => {
                 text: "🔄 Rewrite",
               },
               style: "primary",
-              value: JSON.stringify({ recipient, purpose, tone, template, data: dataDump }),
+              value: draftId,
             },
             {
               type: "button",
@@ -150,7 +150,7 @@ export const registerActions = (app: App): void => {
                 type: "plain_text",
                 text: "👀 Review",
               },
-              value: JSON.stringify({ draftId, recipient, subject: aiContent.subject, preview }),
+              value: draftId,
             },
           ],
         },
@@ -173,17 +173,29 @@ export const registerActions = (app: App): void => {
   app.action("rewrite_email", async ({ ack, action, body, client }) => {
     await ack();
 
-    const metadata = JSON.parse((action as any).value);
+    const draftId = (action as any).value;
+    const draft = await getDraftById(draftId);
+    if (!draft) {
+      await client.chat.postEphemeral({
+        channel: body.channel?.id as string,
+        user: body.user.id,
+        text: "Unable to find the draft. Please retry.",
+      });
+      return;
+    }
+
+    // Reconstruct from available draft data (purpose, tone, data are inferred or defaulted)
+    const initialValues = {
+      recipient: draft.recipient,
+      purpose: draft.content.body.substring(0, 100), // Use start of body as hint
+      tone: "professional" as const,
+      template: draft.template,
+      data: undefined, // Data not persisted; user will re-enter if needed
+    };
 
     await client.views.open({
       trigger_id: (body as any).trigger_id as string,
-      view: buildComposeEmailModal({
-        recipient: metadata.recipient,
-        purpose: metadata.purpose,
-        tone: metadata.tone,
-        template: metadata.template,
-        data: metadata.data,
-      }),
+      view: buildComposeEmailModal(initialValues as any),
     });
   });
 

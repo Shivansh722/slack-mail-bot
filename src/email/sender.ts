@@ -1,23 +1,32 @@
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 
-let initialized = false;
+let transporter: nodemailer.Transporter | null = null;
 
-const initializeSendGrid = () => {
-  if (initialized) return;
-  
-  const apiKey = process.env.SENDGRID_API_KEY;
+const initializeSMTP = () => {
+  if (transporter) return;
+
+  const smtpHost = process.env.SMTP_HOST || "localhost";
+  const smtpPort = parseInt(process.env.SMTP_PORT || "2525");
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
   const senderEmail = process.env.SENDER_EMAIL;
-  const useMock = !apiKey || process.env.MOCK_SEND === "true";
+  const useMock = process.env.MOCK_SEND === "true";
 
-  console.log(`[SendGrid Init] API Key: ${apiKey ? 'SET' : 'MISSING'}, Sender: ${senderEmail || 'MISSING'}, Mock: ${useMock}`);
+  console.log(`[SMTP Init] Host: ${smtpHost}, Port: ${smtpPort}, User: ${smtpUser ? 'SET' : 'MISSING'}, Sender: ${senderEmail || 'MISSING'}, Mock: ${useMock}`);
 
-  if (!useMock && apiKey) {
-    sgMail.setApiKey(apiKey);
-  } else if (!apiKey) {
-    console.warn("SendGrid API key missing — sendEmail will run in mock mode");
+  if (!useMock) {
+    transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465, // true for 465, false for other ports
+      auth: smtpUser && smtpPass ? {
+        user: smtpUser,
+        pass: smtpPass,
+      } : undefined,
+    });
+  } else {
+    console.warn("SMTP not configured — sendEmail will run in mock mode");
   }
-  
-  initialized = true;
 }
 
 export interface SendEmailParams {
@@ -27,11 +36,11 @@ export interface SendEmailParams {
 }
 
 export const sendEmail = async (params: SendEmailParams): Promise<string> => {
-  initializeSendGrid();
-  
+  initializeSMTP();
+
   const senderEmail = process.env.SENDER_EMAIL || "notifications@example.com";
-  const useMock = !process.env.SENDGRID_API_KEY || process.env.MOCK_SEND === "true";
-  
+  const useMock = process.env.MOCK_SEND === "true" || !transporter;
+
   if (useMock) {
     // do not log secret content — only a minimal trace for local dev
     console.log(`[mock sendEmail] to=${params.to} subject=${params.subject}`);
@@ -39,19 +48,18 @@ export const sendEmail = async (params: SendEmailParams): Promise<string> => {
   }
 
   try {
-    console.log(`[SendGrid] Sending from ${senderEmail} to ${params.to}`);
-    const [response] = await sgMail.send({
-      to: params.to,
+    console.log(`[SMTP] Sending from ${senderEmail} to ${params.to}`);
+    const info = await transporter!.sendMail({
       from: senderEmail,
+      to: params.to,
       subject: params.subject,
       html: params.html,
     });
 
-    const messageId = response.headers?.["x-message-id"] ?? response.headers?.["x-smtp-id"] ?? "";
-    console.log(`[SendGrid] Email sent successfully, message ID: ${messageId}`);
-    return messageId;
+    console.log(`[SMTP] Email sent successfully, message ID: ${info.messageId}`);
+    return info.messageId;
   } catch (error: any) {
-    console.error("[SendGrid Error]", error.response?.body || error.message);
-    throw new Error(`SendGrid failed: ${error.response?.body?.errors?.[0]?.message || error.message}`);
+    console.error("[SMTP Error]", error);
+    throw new Error(`SMTP failed: ${error.message}`);
   }
 };

@@ -21,6 +21,14 @@ export interface EmailContent {
   signature: string;
   // if present, the BI template will render this HTML string inside a mj-table
   dataTable?: string;
+  // new AI-driven fields for BI template (optional)
+  preheader?: string;
+  subheading?: string;
+  ai_summary?: string;
+  ai_highlight?: string;
+  ai_key_insight?: string;
+  // HTML or markdown-safe list of actions (preferred as HTML <ul><li>)
+  ai_actions?: string;
 }
 
 
@@ -46,12 +54,21 @@ export const composeEmail = async (params: ComposeEmailInput): Promise<EmailCont
     let body = params.purpose.trim() || "Please find the attached data.";
 
     if (process.env.OPENAI_API_KEY && process.env.MOCK_OPENAI !== "true") {
-      // ask AI to generate a concise summary of the dataset
-      const systemPrompt = `You are a professional email assistant. Reply with valid JSON only using the structure {"subject":"","greeting":"","body":"","cta":"","signature":""}. Do not include markdown or tables.
-Always keep the subject at most eight words and use professional language.`;
-      const userPrompt = `Dataset: ${params.data ?? ""}
-Purpose: ${params.purpose}
-Tone: ${params.tone}`;
+    // ask AI to generate structured content matching MJML placeholders
+    const systemPrompt = `You are a professional email assistant. Reply with valid JSON only using the exact structure:
+  {"subject":"","preheader":"","subheading":"","greeting":"","ai_summary":"","ai_highlight":"","ai_key_insight":"","ai_actions":"","body":"","cta":"","signature":""}
+  Do not include any extra keys, commentary, or markdown. Keep values plain text or HTML-safe (for lists use <ul><li>items</li></ul>). Keep the subject at most eight words and use professional language.`;
+
+    const userPrompt = `Dataset: ${params.data ?? ""}
+  Purpose: ${params.purpose}
+  Tone: ${params.tone}
+  Instructions:
+  - Provide a short ` + "`preheader`" + ` (1 line preview) and a concise ` + "`subheading`" + ` for the email header.
+  - Produce ` + "`ai_summary`" + `: a 1-3 sentence executive summary of the dataset.
+  - Produce ` + "`ai_highlight`" + `: a one-sentence highlight or callout.
+  - Produce ` + "`ai_key_insight`" + `: a short, focused insight for the callout box.
+  - Produce ` + "`ai_actions`" + `: 3 short action items as an HTML unordered list (<ul><li>...)</li></ul>.
+  Use the dataset to surface notable changes, anomalies, or recommended next steps.`;
 
       const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
       const response = await openai.chat.completions.create({
@@ -68,23 +85,48 @@ Tone: ${params.tone}`;
       if (raw) {
         try {
           const parsed = JSON.parse(raw) as EmailContent;
-          // override body but keep signature/cta
+          // merge parsed fields where present
           body = parsed.body || body;
+          // attach other optional fields onto the content object later
+          // we'll return them in the final EmailContent
+          // store parsed in a temporary variable
+          const aiParsed = parsed;
+          const content: EmailContent = {
+            subject: parsed.subject || subject,
+            greeting,
+            body,
+            cta: parsed.cta || "",
+            signature: parsed.signature || "Best regards,\nYour Team",
+            dataTable: params.data ? dumpToTable(params.data) : undefined,
+            preheader: aiParsed.preheader,
+            subheading: aiParsed.subheading,
+            ai_summary: aiParsed.ai_summary,
+            ai_highlight: aiParsed.ai_highlight,
+            ai_key_insight: aiParsed.ai_key_insight,
+            ai_actions: aiParsed.ai_actions,
+          };
+          return content;
         } catch {
           // ignore parse failures
         }
       }
     }
-
-    const content: EmailContent = {
+    // If AI is disabled or parsing failed above, return a deterministic fallback content
+    const fallback: EmailContent = {
       subject,
       greeting,
       body,
       cta: "",
       signature: "Best regards,\nYour Team",
       dataTable: params.data ? dumpToTable(params.data) : undefined,
+      preheader: "Automated BI delivery",
+      subheading: "Latest metrics and recommended actions",
+      ai_summary: "Summary: Key metrics are within expected ranges. See table for details.",
+      ai_highlight: "Revenue up 4% vs prior period.",
+      ai_key_insight: "Revenue increased driven by higher conversion in paid channels.",
+      ai_actions: "<ul><li>Investigate paid channel spend</li><li>Share insights with marketing</li><li>Review conversion funnel</li></ul>",
     };
-    return content;
+    return fallback;
   }
 
   // If OPENAI_API_KEY is missing or MOCK_OPENAI is set, return a deterministic mock

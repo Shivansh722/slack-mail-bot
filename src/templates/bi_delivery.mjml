@@ -1,39 +1,261 @@
 <mjml>
   <mj-head>
+    <mj-preview>{{preheader}}</mj-preview>
+    <mj-font name="Inter" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" />
+    <mj-attributes>
+      <mj-all font-family="Inter, Arial, sans-serif" />
+    </mj-attributes>
     <mj-style>
-      .bi-table td {
-        border: 1px solid #ccc;
-        padding: 4px 6px;
+      /* ── TABLE STYLES ── */
+      .bi-table {
+        border-collapse: collapse;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
       }
-      .bi-table tr:nth-child(even) td {background-color:#f9f9f9;}
+
+      /* Colored header row */
+      .bi-table thead tr th {
+        background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0ea5e9 100%);
+        color: #ffffff !important;
+        font-weight: 700;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        padding: 12px 14px;
+        border: none;
+        text-align: left;
+      }
+
+      /* Accent first column header with yellow pop */
+      .bi-table thead tr th:first-child {
+        background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+        color: #1a1a1a !important;
+      }
+
+      /* Body rows */
+      .bi-table tbody tr td {
+        padding: 10px 14px;
+        font-size: 14px;
+        color: #1f2937;
+        border-bottom: 1px solid #e5e7eb;
+        border-right: 1px solid #f3f4f6;
+      }
+
+      .bi-table tbody tr:nth-child(even) td {
+        background-color: #eff6ff;
+      }
+
+      .bi-table tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      /* Hover shimmer on rows (email clients that support it) */
+      .bi-table tbody tr:hover td {
+        background-color: #dbeafe !important;
+      }
+
+      /* ── CALLOUT BOX ── */
+      .callout-box {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border-left: 5px solid #0ea5e9;
+        border-radius: 0 8px 8px 0;
+        padding: 14px 18px;
+        margin: 0 0 16px 0;
+      }
+
+      /* ── STAT PILL ── */
+      .stat-pill {
+        display: inline-block;
+        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        color: #1a1a1a;
+        font-weight: 700;
+        font-size: 13px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin: 0 4px 0 0;
+      }
+
+      /* ── SECTION LABEL ── */
+      .section-label {
+        display: inline-block;
+        background: #1d4ed8;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 4px;
+        margin-bottom: 6px;
+      }
     </mj-style>
   </mj-head>
-  <mj-body background-color="#fafafa">
-    <mj-section background-color="#0b2240" padding="20px">
+
+  <mj-body background-color="#f1f5f9">
+
+    <!-- ══ HEADER BANNER ══ -->
+    <mj-section background-color="#0b2240" padding="28px 24px 22px">
       <mj-column>
-        <mj-text font-size="22px" color="#ffffff" font-weight="bold">
+        <!-- Eyebrow label -->
+        <mj-text font-size="11px" color="#93c5fd" font-weight="700" letter-spacing="2px" padding-bottom="6px">
+          BUSINESS INTELLIGENCE REPORT
+        </mj-text>
+        <mj-text font-size="26px" color="#ffffff" font-weight="800" line-height="32px" padding="0">
           {{subject}}
+        </mj-text>
+        <!-- Subheading under subject (short summary from OpenAI) -->
+        <mj-text font-size="14px" color="#cfe8ff" font-weight="600" line-height="20px" padding-top="6px">
+          {{subheading}}
+        </mj-text>
+        <!-- Accent underline bar -->
+        <mj-divider border-color="#f59e0b" border-width="3px" width="60px" align="left" padding="10px 0 0" />
+      </mj-column>
+    </mj-section>
+
+    <!-- ══ DATE / META STRIP ══ -->
+    <mj-section background-color="#1e3a5f" padding="8px 24px">
+      <mj-column>
+        <mj-text font-size="12px" color="#94a3b8" padding="0">
+          📅 &nbsp;<strong style="color:#e2e8f0;">Automated Report</strong> &nbsp;·&nbsp; Delivered by BI Engine
         </mj-text>
       </mj-column>
     </mj-section>
-    <mj-section background-color="#ffffff" padding="20px">
+
+    <!-- ══ GREETING + BODY ══ -->
+    <mj-section background-color="#ffffff" padding="28px 24px 0" border-radius="0">
       <mj-column>
-        <mj-text font-size="16px" color="#0f172a">
+
+        <!-- Greeting -->
+        <mj-text font-size="17px" color="#0f172a" font-weight="600" padding-bottom="4px">
           {{greeting}}
         </mj-text>
-        <mj-divider border-color="#e5e7eb" />
-        <mj-text font-size="16px" color="#1f2937" line-height="24px">
+
+        <!-- Thick blue divider -->
+        <mj-divider border-color="#2563eb" border-width="2px" padding="10px 0 18px" />
+
+        <!-- Executive summary generated by OpenAI -->
+        <mj-text font-size="14px" color="#0f172a" font-weight="700" padding="6px 0 4px">
+          Executive Summary
+        </mj-text>
+        <mj-text font-size="15px" color="#334155" line-height="24px" padding-bottom="14px">
+          {{ai_summary}}
+        </mj-text>
+
+        <!-- Body text with richer HTML inside -->
+        <mj-text font-size="15px" color="#334155" line-height="26px" padding-bottom="20px">
           {{body}}
         </mj-text>
-        {{#if dataTable}}
-          <mj-table css-class="bi-table" cellpadding="0" cellspacing="0" width="100%">
-            {{{dataTable}}}
-          </mj-table>
-        {{/if}}
-        <mj-text font-size="16px" color="#4b5563">
+
+        <!-- Subheading / short highlight from OpenAI -->
+        <mj-text font-size="13px" color="#64748b" line-height="20px" padding-bottom="12px">
+          {{ai_highlight}}
+        </mj-text>
+
+        <!-- Colored thin accent bar between sections -->
+        <mj-divider border-color="#0ea5e9" border-width="4px" padding="8px 0 18px" />
+
+      </mj-column>
+    </mj-section>
+
+    <!-- ══ CALLOUT / HIGHLIGHT BOX ══ -->
+    <mj-section background-color="#ffffff" padding="0 24px 6px">
+      <mj-column>
+        <mj-text padding="0">
+          <div class="callout-box">
+            <span class="section-label">Key Insight</span><br/>
+            <span style="font-size:15px; color:#0c4a6e; line-height:22px;">
+              {{ai_key_insight}}
+            </span>
+          </div>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- ══ SECTION HEADING: Data Breakdown ══ -->
+    <mj-section background-color="#ffffff" padding="4px 24px 10px">
+      <mj-column>
+        <mj-text padding="0">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding:0; vertical-align:middle;">
+                <span style="font-size:18px; font-weight:800; color:#1e293b; letter-spacing:-0.3px;">📊 Data Breakdown</span>
+              </td>
+              <td style="padding:0; text-align:right; vertical-align:middle;">
+                <span class="stat-pill">Live Data</span>
+              </td>
+            </tr>
+            <tr>
+              <td colspan="2" style="padding:4px 0 0;">
+                <span style="font-size:13px; color:#64748b; font-style:italic;">
+                  Figures are auto-generated — <strong>do not edit manually</strong>
+                </span>
+              </td>
+            </tr>
+          </table>
+        </mj-text>
+        <!-- Dashed divider before table -->
+        <mj-divider border-color="#cbd5e1" border-style="dashed" border-width="1px" padding="10px 0 14px" />
+      </mj-column>
+    </mj-section>
+
+    <!-- ══ DATA TABLE ══ -->
+    {{#if dataTable}}
+    <mj-section background-color="#ffffff" padding="0 24px 24px">
+      <mj-column>
+        <mj-table css-class="bi-table" cellpadding="0" cellspacing="0" width="100%">
+          {{{dataTable}}}
+        </mj-table>
+        <!-- Sub-note below table -->
+        <mj-text font-size="12px" color="#94a3b8" padding-top="10px" padding-bottom="0">
+          * <em>Even rows are shaded for readability · First column header highlighted in <strong style="color:#d97706;">amber</strong> · Header row in <strong style="color:#1d4ed8;">blue</strong></em>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+    {{else}}
+    <mj-section background-color="#ffffff" padding="0 24px 24px">
+      <mj-column>
+        <mj-text font-size="14px" color="#475569" padding="12px 0">No tabular data available for this run.</mj-text>
+      </mj-column>
+    </mj-section>
+    {{/if}}
+
+    <!-- ══ ACTION ITEMS (from OpenAI) ══ -->
+    <mj-section background-color="#ffffff" padding="0 24px 18px">
+      <mj-column>
+        <mj-text font-size="16px" font-weight="800" color="#0f172a" padding="6px 0">⚡ Top Action Items</mj-text>
+        <mj-text font-size="14px" color="#334155" line-height="22px">
+          {{{ai_actions}}}
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+    <!-- ══ DIVIDER SECTION ══ -->
+    <mj-section background-color="#ffffff" padding="0 24px 24px">
+      <mj-column>
+        <mj-divider border-color="#e2e8f0" border-width="1px" padding="0 0 16px" />
+        <!-- Signature -->
+        <mj-text font-size="15px" color="#475569" line-height="24px" padding="0">
           {{signature}}
         </mj-text>
       </mj-column>
     </mj-section>
+
+    <!-- ══ FOOTER ══ -->
+    <mj-section background-color="#0f172a" padding="16px 24px">
+      <mj-column>
+        <mj-text font-size="12px" color="#64748b" align="center" padding="0">
+          This is an <strong style="color:#94a3b8;">automated report</strong>. Please do not reply directly to this email.
+          <br/>
+          <span style="color:#94a3b8;">Support:</span> <a href="mailto:{{support_email}}" style="color:#cbd5e1; text-decoration:none;">{{support_email}}</a>
+          <br/>
+          <span style="color:#475569;">© {{year}} · {{company_name}} · Powered by BI Engine</span>
+          <br/>
+          <a href="{{unsubscribe_url}}" style="color:#93c5fd; font-size:12px; text-decoration:none;">Unsubscribe</a>
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
   </mj-body>
 </mjml>
